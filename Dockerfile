@@ -1,51 +1,44 @@
-# Base image
+# -------------------------------------------
+# 基于 yunjiu99 的方法二：使用预构建镜像 (版本及时更新版)
+# -------------------------------------------
 FROM ghcr.io/yu2051/jiuguan002:latest
 
-# Switch to root user to install tools and prepare the filesystem
+# 切换到 root 用户来安装工具
 USER root
 
-# 1. Install 'gettext' and 'git'.
+# 1. 安装 git 和其他必要工具
 RUN apk add --no-cache gettext git
 
-# 2. Create the data directory.
+# 2. 【核心修复】解决 Zeabur 挂载硬盘后的 Git 权限报错
+# 这行命令告诉 Git：信任所有目录，不要报 dubious ownership 错误
+RUN git config --system --add safe.directory '*'
+
+# 3. 创建数据目录
 RUN mkdir -p /home/node/app/data
 
-# 3. Copy the configuration template and the entrypoint script.
+# 4. 复制配置文件和启动脚本
+# (注意：如果你是从 Nyy Fork 的，可能没有这俩文件，请务必新建)
 COPY config.template.yaml /home/node/app/config.template.yaml
 COPY entrypoint.sh /home/node/app/entrypoint.sh
 
-# --- Install the cloud-saves plugin EXACTLY as per the tutorial ---
-# a. Define the target plugins directory specified by the tutorial.
+# --- 安装云端备份插件 (Cloud Saves) ---
 ARG PLUGINS_DIR=/home/node/app/plugins
-
-# b. Create the plugins directory.
 RUN mkdir -p ${PLUGINS_DIR}
-
-# c. Switch the working directory to the plugins folder.
 WORKDIR ${PLUGINS_DIR}
-
-# d. Run 'git clone' from within the plugins directory.
-# This will create the 'cloud-saves' sub-directory automatically.
 RUN git clone https://github.com/fuwei99/cloud-saves
-
-# e. Switch the working directory into the newly created plugin folder.
 WORKDIR ${PLUGINS_DIR}/cloud-saves
-
-# f. Run 'npm install' to install dependencies.
 RUN npm install
+# ------------------------------------
 
-# g. Reset the working directory back to the application root.
+# 5. 回到工作目录
 WORKDIR /home/node/app
-# --- End of plugin installation ---
 
-# 4. Set ownership for the ENTIRE application directory to the 'node' user.
+# 6. 修复启动脚本的换行符问题 (防止 Windows 上传导致的报错)
+RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh
+
+# 7. 修复文件权限
 RUN chown -R node:node /home/node/app
 
-# 5. Make the entrypoint script executable.
-RUN chmod +x /home/node/app/entrypoint.sh
-
-# 6. Switch to the final, non-privileged user.
+# 8. 切换回普通用户启动
 USER node
-
-# 7. Set the entrypoint to our script.
-ENTRYPOINT ["/home/node/app/entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
