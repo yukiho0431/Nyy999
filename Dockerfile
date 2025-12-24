@@ -25,7 +25,7 @@ COPY entrypoint.sh /home/node/app/entrypoint.sh
 ARG PLUGINS_DIR=/home/node/app/plugins
 RUN mkdir -p ${PLUGINS_DIR}
 WORKDIR ${PLUGINS_DIR}
-RUN git clone https://github.com/yukiho0431/cloud-saves
+RUN git clone https://github.com/fuwei99/cloud-saves
 WORKDIR ${PLUGINS_DIR}/cloud-saves
 RUN npm install
 # ------------------------------------
